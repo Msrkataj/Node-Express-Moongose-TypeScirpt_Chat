@@ -1,6 +1,4 @@
-import bcrypt from 'bcrypt';
 import express from 'express';
-import session from 'express-session';
 import exhbs from 'express-handlebars';
 import bodyParser from 'body-parser';
 import cors from 'cors';
@@ -12,8 +10,10 @@ import path from 'path';
 
 import { APP_PORT } from './config/app';
 import { connectToMongoose } from './models';
-import api from './api';
-import { init as initSockets } from './sockets';
+import { guest, initPassport } from './passport';
+import { initSockets } from './sockets';
+import { initSession } from './session';
+import User from './models/user';
 
 (async function runApp(): Promise<void> {
   try {
@@ -44,13 +44,35 @@ import { init as initSockets } from './sockets';
     // Static dir
     app.use(express.static(path.join(__dirname, 'public')));
 
-    app.use(
-      session({
-        resave: false,
-        saveUninitialized: true,
-        secret: bcrypt.hashSync('CHAT_SESSION_SECRET', 5),
-      })
+    const sessionMiddleware = initSession(app);
+    const passport = initPassport(app);
+
+    // Connect to the database
+    await connectToMongoose();
+
+    const io = socketIo(server);
+    initSockets(io, sessionMiddleware);
+
+    const user = new User(guest);
+    const userStart = await User.findOne({ name: guest.name });
+    if (!userStart) {
+      await user.save();
+    }
+
+    app.post(
+      '/login',
+      passport.authenticate('local', { failureRedirect: '/' }),
+      (req, res) => {
+        res.redirect('/');
+      }
     );
+
+    app.get('/logout', (req, res) => {
+      res.clearCookie('my.connect.sid');
+      res.clearCookie('connect.sid', { domain: 'localhost' }).send();
+      res.redirect('/');
+      res.end();
+    });
 
     // 404 supports
     app.use((req, res) => {
@@ -59,15 +81,6 @@ import { init as initSockets } from './sockets';
         status: 404,
       });
     });
-
-    // Connect to the database
-    await connectToMongoose();
-
-    // Add routing
-    app.use(api);
-
-    const io = socketIo(server);
-    initSockets(io);
 
     const serverInstance = server.listen(APP_PORT, () => {
       console.log(

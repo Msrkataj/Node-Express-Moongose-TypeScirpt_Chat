@@ -1,0 +1,33 @@
+<form id="register"  style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+    <h1 style="font-size: 20px">GeoChat Register</h1>
+    <table style="margin-bottom: 10px">
+        <p class="registerSuccess" style="display: none">Register Success</p>
+        <tr style="height: 30px;">
+            <td>
+                <label for="username">Username:</label>
+            </td>
+            <td>
+                <input name="username-reg" id="username-reg" type="text" required>
+            </td>
+        </tr>
+        <tr style="height: 30px;">
+            <td>
+                <label for="password">Password:</label>
+            </td>
+            <td>
+                <input name="password-reg" id="password-reg" type="password" required>
+            </td>
+        </tr>
+        <tr style="height: 30px;">
+            <td>
+                <label for="name">Name:</label>
+            </td>
+            <td>
+                <input name="name" id="name" type="text" required>
+            </td>
+        </tr>
+    </table>
+    <div style="display: flex; justify-content: space-between; width: 150px">
+        <button type="submit">Register</button>
+        {{>logout}}
+    </div></form>
